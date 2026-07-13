@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revisão Inteligente — Calculadora</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#F4F6F7;color:#1C2833;min-height:100vh}
+/* LOGIN */
+#login-overlay{position:fixed;inset:0;background:#1C2833;display:flex;align-items:center;justify-content:center;z-index:9999}
+#login-box{background:#fff;border-radius:12px;padding:2.5rem 2rem;width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.25)}
+#login-box h1{font-size:20px;font-weight:500;color:#1C2833;margin-bottom:4px}
+#login-box p{font-size:13px;color:#888;margin-bottom:1.5rem}
+#login-box input{width:100%;padding:10px 14px;font-size:14px;border:1px solid #D5D8DC;border-radius:8px;outline:none;font-family:inherit;margin-bottom:.75rem;box-sizing:border-box}
+#login-box input:focus{border-color:#085041}
+#login-box button{width:100%;padding:11px;background:#085041;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
+#login-box button:hover{background:#0F6E56}
+#login-error{font-size:12px;color:#A32D2D;margin-top:.5rem;display:none}
+/* APP */
+.header{background:#1C2833;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+.header-title{color:#fff;font-size:17px;font-weight:500}
+.header-sub{color:#AAB2BD;font-size:12px;margin-top:2px}
+.container{max-width:900px;margin:0 auto;padding:1.25rem 1rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:1rem;padding:.75rem 1rem;background:#fff;border:0.5px solid #D5D8DC;border-radius:12px}
+.db-info{font-size:12px;color:#666}
+.db-info strong{color:#1C2833;font-weight:500}
+.btn-sm{font-size:12px;padding:5px 12px;cursor:pointer;border-radius:8px;border:0.5px solid #BFBFBF;background:#fff;color:#1C2833;font-family:inherit}
+.btn-sm:hover{background:#F4F6F7}
+.import-panel{display:none;padding:1rem;background:#F8F9FA;border:0.5px solid #D5D8DC;border-radius:12px;margin-bottom:1rem}
+.import-panel.open{display:block}
+.import-title{font-size:13px;font-weight:500;color:#1C2833;margin-bottom:.4rem}
+.import-sub{font-size:12px;color:#666;margin-bottom:.75rem;line-height:1.6}
+.import-sub strong{color:#1C2833}
+.import-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.import-row input[type=file]{font-size:12px;flex:1;min-width:0}
+.preview-box{margin-top:.75rem;padding:.6rem .75rem;background:#fff;border:0.5px solid #D5D8DC;border-radius:8px;font-size:12px;color:#666;min-height:36px;line-height:1.5}
+.preview-ok{color:#0F6E56}
+.preview-err{color:#A32D2D}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.filters select{font-size:14px;width:100%;padding:8px 10px;border:0.5px solid #BFBFBF;border-radius:8px;background:#fff;font-family:inherit;color:#1C2833}
+.parc-wrap{display:flex;align-items:center;gap:8px;margin-bottom:1.25rem}
+.parc-wrap label{font-size:12px;color:#666;white-space:nowrap}
+.parc-wrap select{font-size:13px;padding:6px 10px;border:0.5px solid #BFBFBF;border-radius:8px;background:#fff;font-family:inherit;color:#1C2833}
+.card{background:#fff;border:0.5px solid #D5D8DC;border-radius:12px;padding:1.25rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem;border-bottom:0.5px solid #EDEDED;padding-bottom:.75rem;flex-wrap:wrap}
+.car-name{font-size:17px;font-weight:500;color:#1C2833}
+.brand-badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.rev-toggle{margin-left:auto;display:flex;align-items:center;gap:8px}
+.toggle-label{font-size:11px;color:#888;white-space:nowrap}
+.switch{position:relative;display:inline-block;width:38px;height:22px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#D5D8DC;transition:.3s;border-radius:22px}
+.slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:white;transition:.3s;border-radius:50%}
+input:checked+.slider{background:#085041}
+input:checked+.slider:before{transform:translateX(16px)}
+.revs-grid{display:grid;gap:10px;margin-bottom:1rem}
+.rev-box{background:#F8F9FA;border-radius:8px;padding:.75rem;text-align:center;border:0.5px solid #EDEDED}
+.rev-label{font-size:11px;color:#888;margin-bottom:4px}
+.rev-val{font-size:15px;font-weight:500;color:#1C2833}
+.rev-km{font-size:11px;color:#AAB2BD;margin-top:2px}
+.totals-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.total-box{border-radius:8px;padding:.85rem 1rem;text-align:center}
+.total-box.avulso{background:#F8F9FA;border:0.5px solid #D5D8DC}
+.total-box.pacote{background:#EBF5FB;border:0.5px solid #AED6F1}
+.total-box.parcela{background:#EAFAF1;border:0.5px solid #A9DFBF}
+.total-label{font-size:11px;margin-bottom:4px}
+.total-box.avulso .total-label{color:#888}
+.total-box.pacote .total-label{color:#1A5276}
+.total-box.parcela .total-label{color:#0F6E56}
+.total-val{font-size:18px;font-weight:500}
+.total-box.avulso .total-val{color:#1C2833}
+.total-box.pacote .total-val{color:#1A5276}
+.total-box.parcela .total-val{color:#0F6E56}
+.total-sub{font-size:11px;margin-top:3px}
+.total-box.avulso .total-sub{color:#AAB2BD}
+.total-box.pacote .total-sub{color:#2E86C1}
+.total-box.parcela .total-sub{color:#1D9E75}
+.eco-strip{margin-top:.75rem;padding:.8rem 1rem;border-radius:8px;background:#EAFAF1;border:0.5px solid #A9DFBF}
+.eco-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.eco-label{font-size:12px;color:#0F6E56}
+.eco-val{font-size:15px;font-weight:500;color:#0F6E56}
+.eco-divider{border:none;border-top:0.5px solid #A9DFBF;margin:.5rem 0}
+.eco-total-row{display:flex;align-items:center;justify-content:space-between}
+.eco-total-label{font-size:13px;font-weight:500;color:#0F6E56}
+.eco-total-val{font-size:17px;font-weight:500;color:#0F6E56}
+.eco-obs{font-size:11px;color:#0F6E56;opacity:.75;margin-top:6px;line-height:1.5}
+.results-count{font-size:12px;color:#888;margin-bottom:.75rem}
+.empty-state{text-align:center;padding:3rem 0;color:#888;font-size:14px}
+@media(max-width:560px){
+  .revs-grid{grid-template-columns:repeat(2,1fr)!important}
+  .totals-row{grid-template-columns:1fr}
+  .filters{grid-template-columns:1fr}
+  .header{flex-direction:column;align-items:flex-start;gap:4px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay">
+  <div id="login-box">
+    <h1>Revisão Inteligente</h1>
+    <p>Calculadora de valores por modelo</p>
+    <input type="password" id="pwd-input" placeholder="Digite a senha de acesso"
+           onkeydown="if(event.key==='Enter')checkPwd()">
+    <button onclick="checkPwd()">Entrar</button>
+    <div id="login-error">Senha incorreta. Tente novamente.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="header">
+  <div>
+    <div class="header-title">Revisão Inteligente</div>
+    <div class="header-sub">Calculadora de valores por modelo</div>
+  </div>
+  <div style="color:#AAB2BD;font-size:11px;text-align:right" id="header-base"></div>
+</div>
+<div class="container">
+  <div class="topbar">
+    <div class="db-info">Base ativa: <strong id="db-name">—</strong><span id="db-count" style="margin-left:6px"></span></div>
+    <button class="btn-sm" onclick="toggleImport()">Atualizar planilha</button>
+  </div>
+  <div class="import-panel" id="import-panel">
+    <div class="import-title">Atualizar base de valores</div>
+    <div class="import-sub">Selecione o arquivo <strong>.xlsx</strong>.<br>A planilha deve ter as colunas: <strong>Marca, Modelo, Revisao, Valor</strong></div>
+    <div class="import-row">
+      <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFile(this)">
+      <button class="btn-sm" id="btn-confirm" style="display:none;border-color:#1D9E75;color:#0F6E56" onclick="confirmImport()">Confirmar</button>
+      <button class="btn-sm" onclick="cancelImport()">Cancelar</button>
+    </div>
+    <div class="preview-box" id="preview">Nenhum arquivo selecionado.</div>
+  </div>
+  <div class="filters">
+    <select id="brand" onchange="onBrandChange()"></select>
+    <select id="model" onchange="render()"></select>
+  </div>
+  <div class="parc-wrap">
+    <label>Parcelas:</label>
+    <select id="parc" onchange="render()">
+      <option value="1">À vista</option>
+      <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
+      <option value="5">5x</option><option value="6">6x</option><option value="7">7x</option>
+      <option value="8">8x</option><option value="9">9x</option><option value="10">10x</option>
+      <option value="11">11x</option><option value="12" selected>12x</option>
+    </select>
+  </div>
+  <div id="results"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const DESCONTO=0.05, VOUCHER=2000;
+const STORAGE_KEY='ri_base_v1', STORAGE_META='ri_meta_v1';
+const PWD_HASH='07f2b82ee71bb69e03aa2cb9bc1cadb8aec2af93e432895c8221fcb8eb5be10b';
+const SESSION_KEY='ri_auth';
+const BRAND_STYLE={
+  GM:{bg:'#FEF9E7',color:'#B7770D'},NISSAN:{bg:'#EEF2FF',color:'#3730A3'},
+  KIA:{bg:'#FEF2F2',color:'#991B1B'},HYUNDAI:{bg:'#EFF6FF',color:'#1D4ED8'},
+  BYD:{bg:'#F0FDF4',color:'#166534'}
+};
+const KM_STD=['10.000 km','20.000 km','30.000 km','40.000 km'];
+const KM_BYD=['20.000 km','40.000 km','60.000 km','80.000 km'];
+const DEFAULT_MODELS=[{"marca": "BYD", "nome": "DOLPHIN", "revs": [393, 1292, 393, 1292]}, {"marca": "BYD", "nome": "HAN", "revs": [396, 1517, 396, 1517]}, {"marca": "BYD", "nome": "KING", "revs": [926, 1290, 926, 2795]}, {"marca": "BYD", "nome": "MINI DOLPHIN", "revs": [361, 1225, 361, 1225]}, {"marca": "BYD", "nome": "SEAL", "revs": [381, 2136, 381, 2136]}, {"marca": "BYD", "nome": "SHARK", "revs": [1127, 1548, 1127, 3568]}, {"marca": "BYD", "nome": "SONG PLUS DM-i", "revs": [911, 1276, 911, 2647]}, {"marca": "BYD", "nome": "SONG PLUS PREMIUM", "revs": [1003, 1389, 1003, 3350]}, {"marca": "BYD", "nome": "SONG PRO", "revs": [966, 1330, 966, 2731]}, {"marca": "BYD", "nome": "YUAN", "revs": [393, 1278, 393, 1278]}, {"marca": "BYD", "nome": "YAN", "revs": [393, 1278, 393, 1278]}, {"marca": "GM", "nome": "BLAZER EV", "revs": [0, 224, 708, 224]}, {"marca": "GM", "nome": "CAPTIVA EV", "revs": [140, 1040, 236, 780]}, {"marca": "GM", "nome": "EQUINOX", "revs": [420, 988, 740, 1344]}, {"marca": "GM", "nome": "MONTANA 133CV 2025", "revs": [384, 968, 672, 1032]}, {"marca": "GM", "nome": "MONTANA 141CV Injeção Direta 2025", "revs": [420, 1036, 704, 1132]}, {"marca": "GM", "nome": "MONTANA 141CV Injeção Direta 2026", "revs": [420, 788, 704, 880]}, {"marca": "GM", "nome": "ONIX 2026 TURBO - 8° Chassi H 2026", "revs": [420, 788, 704, 880]}, {"marca": "GM", "nome": "ONIX ASPIRADO - 8° Chassi A 2025", "revs": [420, 1004, 704, 1068]}, {"marca": "GM", "nome": "ONIX ASPIRADO - 8° Chassi A 2026", "revs": [420, 788, 704, 880]}, {"marca": "GM", "nome": "S10 4X4", "revs": [756, 1692, 1788, 1724]}, {"marca": "GM", "nome": "SILVERADO", "revs": [732, 1932, 1244, 1932]}, {"marca": "GM", "nome": "SPARK EV", "revs": [284, 1100, 604, 556]}, {"marca": "GM", "nome": "SPIN", "revs": [352, 840, 964, 808]}, {"marca": "GM", "nome": "TRACKER 2025", "revs": [384, 968, 672, 1032]}, {"marca": "GM", "nome": "TRACKER 2025 Injeção Direta", "revs": [420, 1036, 704, 1132]}, {"marca": "GM", "nome": "TRACKER 2026", "revs": [420, 788, 704, 880]}, {"marca": "GM", "nome": "TRAILBLAZER", "revs": [756, 1692, 1788, 1724]}, {"marca": "HYUNDAI", "nome": "CRETA 1.0 AT (TGDI) FFV", "revs": [487.69, 927.86, 840.49, 1180.85]}, {"marca": "HYUNDAI", "nome": "CRETA 1.6 DCT (T-GDI) GASOLINA", "revs": [628.71, 1068.88, 981.51, 1321.87]}, {"marca": "HYUNDAI", "nome": "HB20 1.0 MT - NOVA GERAÇÃO", "revs": [414.79, 770.69, 767.59, 1075.91]}, {"marca": "HYUNDAI", "nome": "HB20 1.0 TGDI - NOVA GERAÇÃO", "revs": [487.69, 921.99, 840.49, 1148.81]}, {"marca": "HYUNDAI", "nome": "KONA HEV", "revs": [962.07, 1424.82, 1508.95, 2618.54]}, {"marca": "HYUNDAI", "nome": "NEW TUCSON", "revs": [385.67, 1095.51, 1237.83, 1221.71]}, {"marca": "HYUNDAI", "nome": "PALIDADE", "revs": [1129.07, 1633.89, 1718.02, 2983.56]}, {"marca": "HYUNDAI", "nome": "i20 1.0 MPI", "revs": [491.63, 844.43, 883.63, 1038]}, {"marca": "HYUNDAI", "nome": "i20 1.0 TGDI", "revs": [564.53, 956.53, 956.53, 1110.9]}, {"marca": "KIA", "nome": "BONGO K2500 4X2 PU", "revs": [1345.9, 1781.08, 1345.9, 2101.71]}, {"marca": "KIA", "nome": "BONGO K2500 MY24 4X4 PU", "revs": [1466.08, 1466.08, 2260.04, 2397.91]}, {"marca": "KIA", "nome": "CARNIVAL 3.3 G YP", "revs": [2565.07, 3242.57, 2265.07, 4011.54]}, {"marca": "KIA", "nome": "CERATO 2.0 FLEX BDm", "revs": [1068.79, 1437.51, 1068.79, 1771.48]}, {"marca": "KIA", "nome": "NIRO 1.6 G HEV SG2", "revs": [1016.64, 1533.71, 1016.64, 1931.65]}, {"marca": "KIA", "nome": "RIO 1.6 FLEX SC", "revs": [938.34, 1137.58, 938.34, 1516.55]}, {"marca": "KIA", "nome": "SPORTAGE 1.6 G MHEV NQ5e", "revs": [1169.9, 1577.83, 1169.9, 1866.8]}, {"marca": "KIA", "nome": "SPORTAGE 2.0 FLEX 4X2 QL", "revs": [1076.88, 1484.44, 1076.88, 2303.53]}, {"marca": "KIA", "nome": "STONIC 1.0 G MHEV YBC", "revs": [970.21, 1300.68, 970.21, 1634.65]}, {"marca": "NISSAN", "nome": "FRONTIER", "revs": [1434, 2154, 2433, 2052]}, {"marca": "NISSAN", "nome": "KAIT", "revs": [795, 1122, 936, 1122]}, {"marca": "NISSAN", "nome": "KICKS", "revs": [816, 1221, 945, 1122]}, {"marca": "NISSAN", "nome": "NOVA KICKS", "revs": [846, 603, 516, 1230]}, {"marca": "NISSAN", "nome": "SENTRA", "revs": [834, 1743, 1014, 1641]}, {"marca": "NISSAN", "nome": "VERSA", "revs": [816, 1260, 837, 1158]}];
+
+let activeModels=[], pendingModels=null, pendingMeta=null;
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function fmt(n){return Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2})}
+function isBYD(marca){return marca==='BYD'}
+
+async function sha256(msg){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+async function checkPwd(){
+  const val=document.getElementById('pwd-input').value;
+  const hash=await sha256(val);
+  if(hash===PWD_HASH){
+    try{sessionStorage.setItem(SESSION_KEY,'1');}catch(e){}
+    document.getElementById('login-overlay').style.display='none';
+  } else {
+    document.getElementById('login-error').style.display='block';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+  }
+}
+
+// ── TOPBAR ─────────────────────────────────────────────────────────────────
+function updateTopbar(name,count,date){
+  document.getElementById('db-name').textContent=name;
+  document.getElementById('db-count').textContent=count+' modelos'+(date?' · '+date:'');
+  document.getElementById('header-base').textContent=name;
+}
+
+// ── FILTERS ────────────────────────────────────────────────────────────────
+function buildFilters(){
+  const brands=[...new Set(activeModels.map(m=>m.marca))].sort();
+  document.getElementById('brand').innerHTML='<option value="">Todas as marcas</option>'+brands.map(b=>'<option value="'+b+'">'+b+'</option>').join('');
+  populateModels('');
+}
+function populateModels(brand){
+  const list=brand?activeModels.filter(m=>m.marca===brand):activeModels;
+  const names=[...new Set(list.map(m=>m.nome))].sort();
+  document.getElementById('model').innerHTML='<option value="">Todos os modelos</option>'+names.map(n=>'<option value="'+n+'">'+n+'</option>').join('');
+}
+function onBrandChange(){populateModels(document.getElementById('brand').value);render();}
+function toggleImport(){document.getElementById('import-panel').classList.toggle('open');}
+
+// ── IMPORT ─────────────────────────────────────────────────────────────────
+function handleFile(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      const keys=rows.length?Object.keys(rows[0]):[];
+      const cM=keys.find(k=>/marca/i.test(k))||'';
+      const cN=keys.find(k=>/modelo/i.test(k))||'';
+      const cR=keys.find(k=>/revis/i.test(k))||'';
+      const cV=keys.find(k=>/valor/i.test(k))||'';
+      if(!cM||!cN||!cR||!cV){document.getElementById('preview').innerHTML='<span class="preview-err">Colunas não encontradas. Verifique: Marca, Modelo, Revisao, Valor.</span>';return;}
+      const grouped={};
+      rows.forEach(r=>{
+        const marca=String(r[cM]).trim().toUpperCase();
+        const nome=String(r[cN]).trim();
+        const num=parseInt(String(r[cR]).replace(/\D/g,''));
+        const valor=parseFloat(String(r[cV]).replace(',','.'))||0;
+        if(!marca||!nome||!num||num<1||num>4)return;
+        const key=marca+'|||'+nome;
+        if(!grouped[key])grouped[key]={marca,nome,revs:{1:0,2:0,3:0,4:0}};
+        grouped[key].revs[num]=valor;
+      });
+      pendingModels=Object.values(grouped).map(g=>(({marca:g.marca,nome:g.nome,revs:[g.revs[1],g.revs[2],g.revs[3],g.revs[4]]})));
+      pendingMeta={name:file.name,date:new Date().toLocaleDateString('pt-BR')};
+      document.getElementById('preview').innerHTML='<span class="preview-ok">Lido: <strong>'+pendingModels.length+' modelos</strong> em "'+file.name+'". Clique em Confirmar para ativar.</span>';
+      document.getElementById('btn-confirm').style.display='inline-block';
+    }catch(err){document.getElementById('preview').innerHTML='<span class="preview-err">Erro: '+err.message+'</span>';}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function confirmImport(){
+  if(!pendingModels)return;
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(pendingModels));localStorage.setItem(STORAGE_META,JSON.stringify(pendingMeta));}catch(e){}
+  activeModels=pendingModels;
+  updateTopbar(pendingMeta.name,activeModels.length,pendingMeta.date);
+  pendingModels=null;pendingMeta=null;
+  document.getElementById('import-panel').classList.remove('open');
+  document.getElementById('btn-confirm').style.display='none';
+  document.getElementById('file-input').value='';
+  document.getElementById('preview').textContent='Nenhum arquivo selecionado.';
+  buildFilters();render();
+}
+
+function cancelImport(){
+  pendingModels=null;pendingMeta=null;
+  document.getElementById('import-panel').classList.remove('open');
+  document.getElementById('btn-confirm').style.display='none';
+  document.getElementById('file-input').value='';
+  document.getElementById('preview').textContent='Nenhum arquivo selecionado.';
+}
+
+// ── CARD ───────────────────────────────────────────────────────────────────
+function cardHTML(m,parc,inc1){
+  inc1 = (inc1===undefined)?true:inc1;
+  const allRevs=m.revs;
+  const allKms=isBYD(m.marca)?KM_BYD:KM_STD;
+  const revs=inc1?allRevs:allRevs.slice(1);
+  const kms=inc1?allKms:allKms.slice(1);
+  const lbls=inc1?['1ª','2ª','3ª','4ª']:['2ª','3ª','4ª'];
+  const total=revs.reduce((a,b)=>a+b,0);
+  const comDesconto=+(total*(1-DESCONTO)).toFixed(2);
+  const ecoDesconto=+(total-comDesconto).toFixed(2);
+  const ecoTotal=+(ecoDesconto+VOUCHER).toFixed(2);
+  const parcVal=+(comDesconto/parc).toFixed(2);
+  const bs=BRAND_STYLE[m.marca]||{bg:'#F5F5F5',color:'#555'};
+  const parcLabel=parc===1?'À vista':'Parcelado em '+parc+'x';
+  const parcSub=parc===1?'Sem parcelamento':fmt(parcVal)+'/mês sem juros';
+  const bydBadge=isBYD(m.marca)?'<span class="brand-badge" style="background:#F0FDF4;color:#166634">Revisão 20k km</span>':'';
+  const cid='c'+(m.marca+m.nome).replace(/[^a-z0-9]/gi,'').substring(0,20);
+  const chk=inc1?'checked':'';
+  const cols=revs.length===4?'repeat(4,minmax(0,1fr))':'repeat(3,minmax(0,1fr))';
+  const revsHTML=revs.map((v,i)=>'<div class="rev-box"><div class="rev-label">'+lbls[i]+'ª revisão</div><div class="rev-val">'+fmt(v)+'</div><div class="rev-km">'+kms[i]+'</div></div>').join('');
+  return `<div class="card" id="${cid}">
+    <div class="card-header">
+      <span class="car-name">${m.nome}</span>
+      <span class="brand-badge" style="background:${bs.bg};color:${bs.color}">${m.marca}</span>
+      ${bydBadge}
+      <div class="rev-toggle">
+        <span class="toggle-label">Incluir 1ª revisão</span>
+        <label class="switch"><input type="checkbox" ${chk} onchange="toggleRev1('${cid}','${m.marca}','${m.nome}',this.checked)"><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="revs-grid" style="grid-template-columns:${cols}">${revsHTML}</div>
+    <div class="totals-row">
+      <div class="total-box avulso"><div class="total-label">Total avulso</div><div class="total-val">${fmt(total)}</div><div class="total-sub">${revs.length} revisões separadas</div></div>
+      <div class="total-box pacote"><div class="total-label">Pacote Revisão Inteligente</div><div class="total-val">${fmt(comDesconto)}</div><div class="total-sub">Com desconto</div></div>
+      <div class="total-box parcela"><div class="total-label">${parcLabel}</div><div class="total-val">${parc===1?fmt(comDesconto):fmt(parcVal)}</div><div class="total-sub">${parcSub}</div></div>
+    </div>
+    <div class="eco-strip">
+      <div class="eco-row"><span class="eco-label">Desconto no pacote</span><span class="eco-val">${fmt(ecoDesconto)}</span></div>
+      <div class="eco-row" style="margin-top:4px"><span class="eco-label">Voucher troca de veículo</span><span class="eco-val">${fmt(VOUCHER)}</span></div>
+      <hr class="eco-divider">
+      <div class="eco-total-row"><span class="eco-total-label">Economia total para o cliente</span><span class="eco-total-val">${fmt(ecoTotal)}</span></div>
+      <div class="eco-obs">* O voucher de ${fmt(VOUCHER)} é um benefício de crédito na troca do veículo dentro do grupo e não é deduzido do valor do pacote.</div>
+    </div>
+  </div>`;
+}
+
+function toggleRev1(cid,marca,nome,inc1){
+  const parc=parseInt(document.getElementById('parc').value);
+  const m=activeModels.find(x=>x.marca===marca&&x.nome===nome);
+  if(!m)return;
+  const el=document.getElementById(cid);
+  if(!el)return;
+  const tmp=document.createElement('div');
+  tmp.innerHTML=cardHTML(m,parc,inc1);
+  el.replaceWith(tmp.firstChild);
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render(){
+  const b=document.getElementById('brand').value;
+  const nm=document.getElementById('model').value;
+  const parc=parseInt(document.getElementById('parc').value);
+  const filtered=activeModels.filter(m=>(!b||m.marca===b)&&(!nm||m.nome===nm));
+  const el=document.getElementById('results');
+  if(!filtered.length){el.innerHTML='<p class="empty-state">Nenhum modelo encontrado.</p>';return;}
+  const countTxt=(!nm&&filtered.length<activeModels.length)?'<p class="results-count">'+filtered.length+' modelos encontrados</p>':nm?'':`<p class="results-count">${activeModels.length} modelos disponíveis</p>`;
+  el.innerHTML=countTxt+filtered.map(m=>cardHTML(m,parc,true)).join('');
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+window.onload = function(){
+  // 1. Check login session
+  try{
+    if(sessionStorage.getItem(SESSION_KEY)==='1'){
+      document.getElementById('login-overlay').style.display='none';
+    }
+  }catch(e){}
+
+  // 2. Load models from localStorage or default
+  activeModels = DEFAULT_MODELS;
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(Array.isArray(parsed)&&parsed.length>0){
+        activeModels=parsed;
+        const meta=JSON.parse(localStorage.getItem(STORAGE_META)||'{}');
+        updateTopbar(meta.name||'Planilha importada',activeModels.length,meta.date||'');
+      } else {
+        updateTopbar('Base Abr/2026',DEFAULT_MODELS.length,'Abr/2026');
+      }
+    } else {
+      updateTopbar('Base Abr/2026',DEFAULT_MODELS.length,'Abr/2026');
+    }
+  }catch(e){
+    updateTopbar('Base Abr/2026',DEFAULT_MODELS.length,'Abr/2026');
+  }
+
+  // 3. Build UI
+  buildFilters();
+  render();
+};
+</script>
+</body>
+</html>
